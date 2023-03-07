@@ -19,6 +19,14 @@ type KeyToDepMap = Map<any, Dep>
 const targetMap = new WeakMap<any, KeyToDepMap>()
 
 // The number of effects currently being tracked recursively.
+/**
+ * 1. 嵌套的 effect 层级数:
+ *  effect(() =>      // 1
+ *    effect(() => {}) // 2
+ *  )
+ *
+ * 2. 第 n 次运行 effect.run
+ */
 let effectTrackDepth = 0
 
 export let trackOpBit = 1
@@ -89,6 +97,10 @@ export class ReactiveEffect<T = any> {
     }
     let parent: ReactiveEffect | undefined = activeEffect
     let lastShouldTrack = shouldTrack
+    /**
+     * 根据当前活跃的 effect 往上找, 查看当前运行的 effect 是否在其链上,
+     * 如果在链上那就不往下执行了, 避免发生死递归
+     */
     while (parent) {
       if (parent === this) {
         return
@@ -97,9 +109,25 @@ export class ReactiveEffect<T = any> {
     }
     try {
       this.parent = activeEffect
+      // 活跃设置
       activeEffect = this
       shouldTrack = true
 
+      /**
+       * 将第一个操作数向左移动指定位数, 这里操作符固定为 1, 移动位数位 effect 的层级
+       * 第一层:
+       *  00000000000000000000000000000001
+       *  00000000000000000000000000000001
+       *  00000000000000000000000000000010
+       * 结果为: 2
+       *
+       * 第二层:
+       *  00000000000000000000000000000001
+       *  00000000000000000000000000000010
+       *  00000000000000000000000000000100
+       * 结果为: 4
+       * ... 8、16、32、64...
+       */
       trackOpBit = 1 << ++effectTrackDepth
 
       if (effectTrackDepth <= maxMarkerBits) {
@@ -216,6 +244,12 @@ export function track(target: object, type: TrackOpTypes, key: unknown) {
     if (!depsMap) {
       targetMap.set(target, (depsMap = new Map()))
     }
+    /**
+     * Target -> Map{
+     *  count: Deps -> Set[]
+     *    ...: Deps -> Set[]
+     * }
+     */
     let dep = depsMap.get(key)
     if (!dep) {
       depsMap.set(key, (dep = createDep()))
@@ -235,7 +269,17 @@ export function trackEffects(
 ) {
   let shouldTrack = false
   if (effectTrackDepth <= maxMarkerBits) {
+    // 检查是不是新跟踪项, newTracked 返回 0 为新跟踪项, 非 0 则不是新跟踪项
     if (!newTracked(dep)) {
+      /**
+       * 当 effect 层级为 2 时:
+       * n = 2 = 00000000000000000000000000000010
+       * t = 4 = 00000000000000000000000000000100
+       * r = 6 = 00000000000000000000000000000110
+       *
+       * 三层: n = 6, t = 8, n = 14
+       * 四层: n = 14, t = 16, n = 30
+       */
       dep.n |= trackOpBit // set newly tracked
       shouldTrack = !wasTracked(dep)
     }
@@ -370,6 +414,7 @@ function triggerEffect(
   effect: ReactiveEffect,
   debuggerEventExtraInfo?: DebuggerEventExtraInfo
 ) {
+  // effect !== activeEffect, 不能在当前 effect 执行时再出发该 effect 的执行, 避免死递归
   if (effect !== activeEffect || effect.allowRecurse) {
     if (__DEV__ && effect.onTrigger) {
       effect.onTrigger(extend({ effect }, debuggerEventExtraInfo))

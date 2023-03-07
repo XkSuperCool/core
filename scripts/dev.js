@@ -100,6 +100,7 @@ esbuild
     entryPoints: [resolve(__dirname, `../packages/${target}/src/index.ts`)],
     outfile,
     bundle: true,
+    // metafile: true,
     external,
     sourcemap: true,
     format: outputFormat,

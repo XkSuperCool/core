@@ -27,6 +27,16 @@ export const createDep = (effects?: ReactiveEffect[]): Dep => {
 
 export const wasTracked = (dep: Dep): boolean => (dep.w & trackOpBit) > 0
 
+/**
+ * 当 effect 为第二层级时:
+ * n = 2 = 00000000000000000000000000000010
+ * t = 4 = 00000000000000000000000000000100
+ * r = 0 = 00000000000000000000000000000000
+ *
+ * 三层: n = 6, t = 8, n = 0
+ * 四层: n = 14, t = 16, n = 0
+ * 即确保了在每层 Effect 都可以将此 Dep 收集
+ */
 export const newTracked = (dep: Dep): boolean => (dep.n & trackOpBit) > 0
 
 export const initDepMarkers = ({ deps }: ReactiveEffect) => {

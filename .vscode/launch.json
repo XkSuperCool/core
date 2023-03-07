@@ -5,6 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Chrome",
+      "request": "launch",
+      "type": "chrome",
+      "url": "http://127.0.0.1:5500/playgrounds/index.html",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
       "name": "Jest",
       "type": "node",
       "request": "launch",
@@ -21,7 +28,7 @@
       "console": "integratedTerminal",
       "sourceMaps": true,
       "windows": {
-        "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+        "program": "${workspaceFolder}/node_modules/jest/bin/jest"
       }
     }
   ]
