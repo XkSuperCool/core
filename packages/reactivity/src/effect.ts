@@ -25,7 +25,6 @@ const targetMap = new WeakMap<any, KeyToDepMap>()
  *    effect(() => {}) // 2
  *  )
  *
- * 2. 第 n 次运行 effect.run
  */
 let effectTrackDepth = 0
 
@@ -33,8 +32,11 @@ export let trackOpBit = 1
 
 /**
  * The bitwise track markers support at most 30 levels of recursion.
- * This value is chosen to enable modern JS engines to use a SMI on all platforms.
+ * This value is chosen to enable modern JS engines to use a SMI (SMALL INTEGER) on all platforms.
  * When recursion depth is greater, fall back to using a full cleanup.
+ *
+ * 按位跟踪标记最多支持30级递归。选择这个值是为了使现代JS引擎在所有平台上都能使用SMI(SMALL INTEGER)。
+ * 当递归深度更大时，回退到使用完全清除。
  */
 const maxMarkerBits = 30
 
@@ -62,6 +64,7 @@ export class ReactiveEffect<T = any> {
   active = true
   deps: Dep[] = []
   parent: ReactiveEffect | undefined = undefined
+  name?: string
 
   /**
    * Can be attached after creation
@@ -141,6 +144,7 @@ export class ReactiveEffect<T = any> {
         finalizeDepMarkers(this)
       }
 
+      // 退回上一层的值, 4 -> 2
       trackOpBit = 1 << --effectTrackDepth
 
       activeEffect = this.parent
@@ -197,13 +201,16 @@ export interface ReactiveEffectRunner<T = any> {
 
 export function effect<T = any>(
   fn: () => T,
-  options?: ReactiveEffectOptions
+  options?: ReactiveEffectOptions & { name?: string }
 ): ReactiveEffectRunner {
   if ((fn as ReactiveEffectRunner).effect) {
     fn = (fn as ReactiveEffectRunner).effect.fn
   }
 
   const _effect = new ReactiveEffect(fn)
+  if (options && options.name) {
+    _effect.name = options.name
+  }
   if (options) {
     extend(_effect, options)
     if (options.scope) recordEffectScope(_effect, options.scope)
@@ -272,15 +279,16 @@ export function trackEffects(
     // 检查是不是新跟踪项, newTracked 返回 0 为新跟踪项, 非 0 则不是新跟踪项
     if (!newTracked(dep)) {
       /**
-       * 当 effect 层级为 2 时:
        * n = 2 = 00000000000000000000000000000010
        * t = 4 = 00000000000000000000000000000100
        * r = 6 = 00000000000000000000000000000110
        *
-       * 三层: n = 6, t = 8, n = 14
-       * 四层: n = 14, t = 16, n = 30
+       * n = 6, t = 8, n = 14
+       * n = 14, t = 16, n = 30
        */
       dep.n |= trackOpBit // set newly tracked
+
+      // 判断是否已经追踪过，已经追踪过就不需要在追踪了
       shouldTrack = !wasTracked(dep)
     }
   } else {

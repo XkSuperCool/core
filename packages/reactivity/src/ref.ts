@@ -87,6 +87,7 @@ declare const ShallowRefMarker: unique symbol
 
 export type ShallowRef<T = any> = Ref<T> & { [ShallowRefMarker]?: true }
 
+// 对传入的对象不进行 toReactive 的转换
 export function shallowRef<T extends object>(
   value: T
 ): T extends Ref ? T : ShallowRef<T>
@@ -203,11 +204,14 @@ export function customRef<T>(factory: CustomRefFactory<T>): Ref<T> {
 export type ToRefs<T = any> = {
   [K in keyof T]: ToRef<T[K]>
 }
+
 export function toRefs<T extends object>(object: T): ToRefs<T> {
   if (__DEV__ && !isProxy(object)) {
     console.warn(`toRefs() expects a reactive object but received a plain one.`)
   }
+  // 创建一个新对象/数组
   const ret: any = isArray(object) ? new Array(object.length) : {}
+  // 遍历调用 toRef
   for (const key in object) {
     ret[key] = toRef(object, key)
   }
@@ -250,6 +254,10 @@ export function toRef<T extends object, K extends keyof T>(
   defaultValue: T[K]
 ): ToRef<Exclude<T[K], undefined>>
 
+// object 是 reactive 对象
+// ObjectRefImpl 就是把 object[key] 包装成了一个具有 .value 的对象
+// 当访问 .value 时，实际上还是访问的 object[key]
+// 赋值时也是 object[key] = xx
 export function toRef<T extends object, K extends keyof T>(
   object: T,
   key: K,

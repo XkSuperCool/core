@@ -42,6 +42,7 @@ export class ComputedRefImpl<T> {
     isSSR: boolean
   ) {
     this.effect = new ReactiveEffect(getter, () => {
+      // 这里是自定义调度器, 这里的作用为触发使用 computed 的 effect 函数
       if (!this._dirty) {
         this._dirty = true
         triggerRefValue(this)

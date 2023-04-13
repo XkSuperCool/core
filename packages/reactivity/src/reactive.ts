@@ -36,7 +36,9 @@ export const shallowReadonlyMap = new WeakMap<Target, any>()
 
 const enum TargetType {
   INVALID = 0,
+  /** Object / Array */
   COMMON = 1,
+  /** Map / Set / WeakMap / WeakSet */
   COLLECTION = 2
 }
 
@@ -205,6 +207,7 @@ function createReactiveObject(
     return existingProxy
   }
   // only specific value types can be observed.
+  // 在 getTargetType 会判断是不是被 markRaw 标记过，如果标记过直接返回 target
   const targetType = getTargetType(target)
   if (targetType === TargetType.INVALID) {
     return target
@@ -236,6 +239,8 @@ export function isProxy(value: unknown): boolean {
   return isReactive(value) || isReadonly(value)
 }
 
+// toRaw 实现逻辑很简单，递归的访问 __v_raw 这个属性
+// 触发 Proxy.get 返回 target, 直到访问不到 __v_raw(这时也就不是 Proxy 对象了)，将值返回
 export function toRaw<T>(observed: T): T {
   const raw = observed && (observed as Target)[ReactiveFlags.RAW]
   return raw ? toRaw(raw) : observed
@@ -243,6 +248,8 @@ export function toRaw<T>(observed: T): T {
 
 export type Raw<T> = T & { [RawSymbol]?: true }
 
+// 利用 defineProperty API，给传入的对象添加了一个标识属性 __v_skip 为 true
+// reactive 时会跳过存在改标识的对象
 export function markRaw<T extends object>(value: T): Raw<T> {
   def(value, ReactiveFlags.SKIP, true)
   return value

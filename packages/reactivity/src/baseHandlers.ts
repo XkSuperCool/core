@@ -136,6 +136,7 @@ function createGetter(isReadonly = false, shallow = false) {
       track(target, TrackOpTypes.GET, key)
     }
 
+    // shallowReactive 时直接返回，不进行 deep reactive
     if (shallow) {
       return res
     }
