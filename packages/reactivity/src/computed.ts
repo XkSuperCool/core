@@ -41,6 +41,8 @@ export class ComputedRefImpl<T> {
     isReadonly: boolean,
     isSSR: boolean
   ) {
+    // Vue2 中 computed 对应的是 Watch
+    // Vue3 中 computed 对应的是 ReactiveEffect
     this.effect = new ReactiveEffect(getter, () => {
       // 这里是自定义调度器, 这里的作用为触发使用 computed 的 effect 函数
       if (!this._dirty) {

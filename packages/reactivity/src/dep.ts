@@ -38,8 +38,6 @@ export const wasTracked = (dep: Dep): boolean => (dep.w & trackOpBit) > 0
  * 三层: n = 6, t = 8, n = 0
  * 四层: n = 14, t = 16, n = 0
  * 即确保了在每层 Effect 都可以将此 Dep 收集
- *
- * 感觉这里只有 dep.n = 0 的时候才会返回 fasle, 也就是表示新的追踪项
  */
 export const newTracked = (dep: Dep): boolean => (dep.n & trackOpBit) > 0
 
