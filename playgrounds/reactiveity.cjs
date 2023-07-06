@@ -64,9 +64,10 @@ const {
 // }, {
 // 	name: 'setup'
 // })
-const obj = {a: 1}
-const arr = reactive([{ a: 1 }, obj])
+const arr = reactive([1])
 effect(() => {
-  const ret = arr.indexOf(obj)
-	arr.push({ a: 2 })
+  console.log(arr.join(''))
+})
+effect(() => {
+	arr.push(2)
 })

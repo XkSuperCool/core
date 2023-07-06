@@ -88,6 +88,8 @@ function createArrayInstrumentations() {
    *    reactiveArray.push(1) // length set 触发 trigger，导致死循环
    * })
    *
+   * 好像并不会 😢，目前我也不确实了...
+   *
    * 注：下面的写法将不会出发 trigger
    * effect(() => {
    *   console.log(array)
