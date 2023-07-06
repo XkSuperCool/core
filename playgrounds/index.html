@@ -1,15 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Document</title>
-</head>
-<body>
-	<script src="../packages/vue/dist/vue.global.js"></script>
-	<script>
-		Vue.createApp()
-	</script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="app">Placeholder</div>
+    <script src="../packages/vue/dist/vue.global.js"></script>
+    <script>
+      const Test = Vue.defineComponent({
+        render() {
+          return Vue.h('div', null, 'Test Component')
+        }
+      })
+
+      const App = Vue.defineComponent({
+        setup() {
+          const obj = { a: 1 }
+          const list = Vue.reactive([ '1', '2' ])
+          return {
+            list,
+            obj
+          }
+        },
+        render() {
+          const { h } = Vue
+          console.log(this.list.length)
+          return h('div', null, [
+            h('div', null, 1),
+            h('button', {
+              onClick: () => {
+                this.list.push(1)
+              }
+            }, 'click')
+          ])
+        }
+      })
+      Vue.createApp(App).mount('#app')
+    </script>
+  </body>
 </html>

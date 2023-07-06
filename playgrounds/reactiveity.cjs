@@ -47,14 +47,22 @@ const { ref, effect, reactive, computed, effectScope } = require('../packages/re
  * 后续逻辑于上面的相同
  */
 
-effect(() => {
-	const count = ref(10)
-	const doubleCount = computed(() => count.value * 2)
+// effect(() => {
+// 	const count = ref(10)
+// 	const doubleCount = computed(() => count.value * 2)
 
-	effect(() => {
-		console.log(count.value)
-		console.log(doubleCount.value)
-	}, { name: 'view' })
-}, {
-	name: 'setup'
+// 	effect(() => {
+// 		console.log(count.value)
+// 		console.log(doubleCount.value)
+// 	}, { name: 'view' })
+// }, {
+// 	name: 'setup'
+// })
+
+const arr = reactive([1, 2])
+effect(() => {
+	console.log(arr)	
+})
+effect(() => {
+	arr.push(3)
 })

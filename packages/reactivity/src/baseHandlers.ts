@@ -56,6 +56,8 @@ function createArrayInstrumentations() {
   const instrumentations: Record<string, Function> = {}
   // instrument identity-sensitive Array methods to account for possible reactive
   // values
+  // includes, indexOf, lastIndexOf 在执行的过程中会触发 track 将值变为响应式对象
+  // 这时 includes(obj), obj 就与响应式对象无法匹配，所以重写了这三个方法
   ;(['includes', 'indexOf', 'lastIndexOf'] as const).forEach(key => {
     instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
       const arr = toRaw(this) as any
@@ -63,6 +65,7 @@ function createArrayInstrumentations() {
         track(arr, TrackOpTypes.GET, i + '')
       }
       // we run the method using the original args first (which may be reactive)
+      // return arr[key](...args.map(toRaw))
       const res = arr[key](...args)
       if (res === -1 || res === false) {
         // if that didn't work, run it again using raw values.
@@ -74,6 +77,31 @@ function createArrayInstrumentations() {
   })
   // instrument length-altering mutation methods to avoid length being tracked
   // which leads to infinite loops in some cases (#2137)
+  /**
+   * 下面这几个方式执行时会同时触发 length 的 get 和 set,  这时就会导致 effect 死循环
+   * 所以禁止了 track 操作
+   * 例：
+   * effect(() => {
+   *    reactiveArray.push(1) // length set 触发 trigger，导致死循环
+   * })
+   *
+   * 注：下面的写法将不会出发 trigger
+   * effect(() => {
+   *   console.log(array)
+   * })
+   * effect(() => {
+   *   array.push(1)
+   * })
+   * 因为第一个 effect 收集的是 array 的自身的依赖，而 array.push 只会改变 array 的 length，
+   * 所以第一个 effect 要使用数组的方法或 length 属性才能正确触发 trigger
+   * effect(() => {
+   *   array.length
+   *   // or
+   *   array.join(',')
+   * })
+   *
+   * 在 Vue 渲染的时候不会直接使用一个数组，而是遍历它或者使用它的方法，所以不存在这样的问题（无法 trigger）
+   */
   ;(['push', 'pop', 'shift', 'unshift', 'splice'] as const).forEach(key => {
     instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
       pauseTracking()
@@ -176,6 +204,7 @@ function createSetter(shallow = false) {
         oldValue = toRaw(oldValue)
         value = toRaw(value)
       }
+      // 数组里存的是 Ref -> [Ref(1)], 直接赋值给 value
       if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
         oldValue.value = value
         return true

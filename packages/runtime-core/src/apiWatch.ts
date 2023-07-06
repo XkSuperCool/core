@@ -211,6 +211,7 @@ function doWatch(
     forceTrigger = isShallow(source)
   } else if (isReactive(source)) {
     getter = () => source
+    // 监听 reactive 对象时，默认开启 deep 模式
     deep = true
   } else if (isArray(source)) {
     isMultiSource = true
