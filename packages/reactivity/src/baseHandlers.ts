@@ -56,8 +56,10 @@ function createArrayInstrumentations() {
   const instrumentations: Record<string, Function> = {}
   // instrument identity-sensitive Array methods to account for possible reactive
   // values
-  // includes, indexOf, lastIndexOf 在执行的过程中会触发 track 将值变为响应式对象
-  // 这时 includes(obj), obj 就与响应式对象无法匹配，所以重写了这三个方法
+  /**
+   * includes, indexOf, lastIndexOf 在执行的过程中会触发 createGetter 创建的 get, 如果是对象的话就会使用 reactvie 包裹
+   * 返回一个响应式对象，这时 includes(obj), obj 就与响应式对象无法匹配，所以重写了这三个方法
+   */
   ;(['includes', 'indexOf', 'lastIndexOf'] as const).forEach(key => {
     instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
       const arr = toRaw(this) as any
@@ -75,6 +77,7 @@ function createArrayInstrumentations() {
       }
     }
   })
+
   // instrument length-altering mutation methods to avoid length being tracked
   // which leads to infinite loops in some cases (#2137)
   /**
